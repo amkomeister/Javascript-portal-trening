@@ -1,11 +1,13 @@
 // A shared Web Lock keeps an authenticated tab from being cleared while it has work.
 // Account changes need the exclusive lock. Every open tab flushes before releasing it.
 export class AccountLock {
-  constructor({ channel, isActive, flush, suspend }) {
+  constructor({ channel, isActive, flush, suspend, canRenew, preserve }) {
     this.channel = channel;
     this.isActive = isActive;
     this.flush = flush;
     this.suspend = suspend;
+    this.canRenew = canRenew;
+    this.preserve = preserve;
     channel.addEventListener('message', (e) => this.receive(e.data));
   }
   hold() {
@@ -44,7 +46,10 @@ export class AccountLock {
       this.remoteId = message.id;
       this.suspend(true);
       try {
-        await this.flush();
+        if (message.renewUserId) {
+          if (!this.canRenew(message.renewUserId)) throw Error('Ein annan konto er open.');
+          await this.preserve();
+        } else await this.flush();
         if (this.remoteId === message.id) this.release();
       } catch {
         if (this.remoteId === message.id) {
@@ -62,16 +67,19 @@ export class AccountLock {
       this.suspend(false);
     }
   }
-  async change(action) {
+  async change(action, { renewUserId } = {}) {
     if (this.changeId) throw Error('Vent til kontobytet er ferdig.');
     this.changeId = crypto.randomUUID();
     this.controller = new AbortController();
     this.suspend(true);
     const id = this.changeId,
       timer = setTimeout(() => this.controller?.abort(), 10000);
-    this.channel.postMessage({ type: 'prepare-account', id });
+    this.channel.postMessage({ type: 'prepare-account', id, renewUserId });
     try {
-      await this.flush();
+      if (renewUserId) {
+        if (!this.canRenew(renewUserId)) throw Error('Ein annan konto er open.');
+        await this.preserve();
+      } else await this.flush();
       this.release();
       return await navigator.locks.request(
         'kodeverkstad-skule-session-v1',

@@ -66,6 +66,10 @@ export class Draft {
     if (!keepMine) this.savedVersion = this.version;
     this.onStatus(keepMine ? 'pending' : 'saved');
   }
+  async preserve() {
+    clearTimeout(this.timer);
+    await this.pending?.catch(() => {});
+  }
   dispose() {
     this.disposed = true;
     clearTimeout(this.timer);

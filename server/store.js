@@ -23,8 +23,9 @@ export function memoryStore() {
     },
     async mutate(c, id, fn) {
       const work = queue.then(() => {
-        const { value, result } = fn(structuredClone(col(c).get(id) || null));
+        const { value, result, writes = [] } = fn(structuredClone(col(c).get(id) || null));
         if (value) col(c).set(id, structuredClone(value));
+        for (const w of writes) col(w.collection).set(w.id, structuredClone(w.value));
         return structuredClone(result);
       });
       queue = work.catch(() => {});
@@ -54,8 +55,9 @@ export function firestoreStore(projectId) {
       return db.runTransaction(async (tx) => {
         const ref = db.collection(c).doc(id),
           snap = await tx.get(ref);
-        const { value, result } = fn(snap.exists ? snap.data() : null);
+        const { value, result, writes = [] } = fn(snap.exists ? snap.data() : null);
         if (value) tx.set(ref, value);
+        for (const w of writes) tx.create(db.collection(w.collection).doc(w.id), w.value);
         return result;
       });
     },

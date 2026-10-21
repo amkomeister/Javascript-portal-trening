@@ -36,6 +36,7 @@ function cleanData(d) {
     autoPassed: d.autoPassed,
     hints: Math.max(0, Math.min(3, Number.isInteger(d.hints) ? d.hints : 0)),
     title: typeof d.title === 'string' ? d.title.slice(0, 120) : '',
+    presentationMode: d.presentationMode === 'web' ? 'web' : 'draw',
   };
 }
 export function createApp({
@@ -119,6 +120,8 @@ export function createApp({
   async function signIn(req, res, claims) {
     if (!claims || typeof claims.sub !== 'string' || !domains.includes(claims.hd))
       throw fail(403, 'Bruk den godkjende Google-skulekontoen din.');
+    if (req.body.resumeUserId && req.body.resumeUserId !== hash(claims.sub))
+      throw fail(403, 'Vel den same skulekontoen som arbeidet er ope for. Koden din er bevart.');
     if (req.cookies.schoolSession) await store.delete('sessions', hash(req.cookies.schoolSession));
     const userId = hash(claims.sub),
       prior = await store.get('users', userId);
@@ -251,8 +254,22 @@ export function createApp({
       const data = cleanData(req.body.data),
         key = req.user.id + '_' + req.params.id;
       const result = await store.mutate(collection, key, (prior) => {
-        if ((prior?.revision || 0) !== req.body.revision)
-          return { result: { conflict: true, current: prior } };
+        if ((prior?.revision || 0) !== req.body.revision) {
+          const copy = {
+            id: randomBytes(12).toString('hex'),
+            userId: req.user.id,
+            collection,
+            recordId: req.params.id,
+            data,
+            serverVersion: prior,
+            baseRevision: req.body.revision,
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            writes: [{ collection: 'conflicts', id: copy.id, value: copy }],
+            result: { conflict: true, current: prior, copy },
+          };
+        }
         const value = {
           id: req.params.id,
           userId: req.user.id,
@@ -264,21 +281,11 @@ export function createApp({
         return { value, result: value };
       });
       if (result.conflict) {
-        const copy = {
-          id: randomBytes(12).toString('hex'),
-          userId: req.user.id,
-          collection,
-          recordId: req.params.id,
-          data,
-          baseRevision: req.body.revision,
-          createdAt: new Date().toISOString(),
-        };
-        await store.set('conflicts', copy.id, copy);
         return res.status(409).json({
           error:
             'Arbeidet er endra i ei anna fane eller på ei anna maskin. Begge versjonane er tekne vare på.',
           current: result.current,
-          conflict: copy,
+          conflict: result.copy,
         });
       }
       res.json(result);

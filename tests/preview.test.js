@@ -1,7 +1,38 @@
 import { it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
-import { sanitizeMarkup, previewDocument } from '../src/runtime/preview.js';
+import { sanitizeMarkup, previewDocument, bridgeScript } from '../src/runtime/preview.js';
+import { runInNewContext } from 'node:vm';
 const parser = () => new JSDOM('').window.DOMParser;
+it('preserves native Space and arrow actions in the HTML preview', () => {
+  const listeners = {};
+  runInNewContext(bridgeScript, {
+    document: {
+      body: { dataset: { token: 'test' } },
+      querySelectorAll: () => [],
+      addEventListener: (type, fn) => (listeners[type] = fn),
+    },
+    addEventListener() {},
+    parent: { postMessage() {} },
+  });
+  for (const tagName of ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON']) {
+    for (const key of [' ', 'ArrowLeft', 'ArrowUp']) {
+      let cancelled = false;
+      listeners.keydown({
+        isTrusted: true,
+        target: { tagName, id: 'field', value: '' },
+        key,
+        preventDefault() {
+          cancelled = true;
+        },
+      });
+      expect(cancelled).toBe(false);
+    }
+  }
+});
+it('records sanitized ancestry for nested event propagation', () => {
+  const r = sanitizeMarkup('<button id="button"><span id="label">Trykk</span></button>', parser());
+  expect(r.dom.find((n) => n.id === 'label').parentId).toBe('button');
+});
 it('keeps useful semantic markup but removes executable, remote and nested documents', () => {
   const P = parser();
   const result = sanitizeMarkup(

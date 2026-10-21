@@ -45,6 +45,7 @@ export function sanitizeMarkup(source, Parser = DOMParser) {
       text: node.textContent.slice(0, 4000),
       value: node.value || '',
       classes: node.className,
+      parentId: node.parentElement === doc.body ? null : node.parentElement?.id || null,
     });
   }
   return { html: doc.body.innerHTML, dom };
@@ -65,7 +66,6 @@ export const bridgeScript = String.raw`(()=>{
  });
  for(const type of ['click','input','change','keydown','keyup'])document.addEventListener(type,e=>{
   if(!e.isTrusted)return;if(e.target.tagName==='A')e.preventDefault();
-  if(type==='keydown'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
   send({type:'event',event:{type,id:e.target.id||'document',key:e.key||'',value:typeof e.target.value==='string'?e.target.value.slice(0,4000):undefined}});
  });
  send({type:'ready'});

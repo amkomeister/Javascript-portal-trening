@@ -122,11 +122,34 @@ function guestBootstrap(seeds) {
   globalThis.__event = (e) => {
     const node = nodes.find((n) => n.id === e.id);
     if (node && typeof e.value === 'string') node.value = e.value;
-    const event = { key: e.key || '', target: node, preventDefault() {} };
-    for (const f of listeners.get((e.id || 'document') + ':' + e.type) || []) f(event);
+    let stopped = false;
+    const event = {
+      type: e.type,
+      key: e.key || '',
+      target: node,
+      currentTarget: null,
+      preventDefault() {},
+      stopPropagation() {
+        stopped = true;
+      },
+    };
+    // Ancestry comes from sanitized markup, never from a student event message.
+    const visited = new Set();
+    let current = node;
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      event.currentTarget = current;
+      for (const f of listeners.get(current.id + ':' + e.type) || []) f(event);
+      if (stopped) break;
+      const parentId = seeds.find((s) => s.id === current.id)?.parentId;
+      current = nodes.find((n) => n.id === parentId);
+    }
+    if (!stopped) {
+      event.currentTarget = document;
+      for (const f of listeners.get('document:' + e.type) || []) f(event);
+    }
     if (e.type === 'keydown') {
       for (const f of keys) f(e.key);
-      for (const f of listeners.get('document:keydown') || []) if (e.id !== 'document') f(event);
     }
   };
 }

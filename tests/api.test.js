@@ -37,6 +37,50 @@ const data = {
   autoPassed: false,
 };
 describe('school API', () => {
+  it.each(['mine', 'other'])(
+    'archives both snapshots after resolving a conflict with %s, including another race',
+    async (choice) => {
+      const app = setup(),
+        a = await login(app);
+      const path = '/api/projects/conflict-test';
+      const A = { ...data, files: { ...data.files, js: 'print("A");' } };
+      const B = { ...data, files: { ...data.files, js: 'print("B");' } };
+      await write(a, path, { revision: 0, data: A });
+      const clash = await write(a, path, { revision: 0, data: B });
+      expect(clash.status).toBe(409);
+      if (choice === 'mine') {
+        await write(a, path, { revision: 1, data: { ...A, reflection: 'Newer A' } });
+        const race = await write(a, path, { revision: 1, data: B });
+        expect(race.status).toBe(409);
+        expect((await write(a, path, { revision: 2, data: B })).status).toBe(200);
+      }
+      const copies = (await a.get('/api/conflicts')).body.records;
+      expect(copies[0].serverVersion.data.files.js).toBe(A.files.js);
+      expect(copies[0].data.files.js).toBe(B.files.js);
+      expect(copies[0].serverVersion.revision).toBe(1);
+      if (choice === 'mine') expect(copies[1].serverVersion.data.reflection).toBe('Newer A');
+      expect((await a.get(path)).body.data.files.js).toBe(
+        choice === 'mine' ? B.files.js : A.files.js,
+      );
+    },
+  );
+  it('same-account renewal rejects another identity before changing the session', async () => {
+    const app = setup(),
+      a = await login(app);
+    const prior = (await a.get('/api/me')).body;
+    const rejected = await a
+      .post('/api/auth/local')
+      .set('Origin', 'http://127.0.0.1:5175')
+      .send({ account: 'student2', resumeUserId: prior.user.id });
+    expect(rejected.status).toBe(403);
+    expect((await a.get('/api/me')).body.user.id).toBe(prior.user.id);
+    const renewed = await a
+      .post('/api/auth/local')
+      .set('Origin', 'http://127.0.0.1:5175')
+      .send({ account: 'student1', resumeUserId: prior.user.id });
+    expect(renewed.status).toBe(200);
+    expect(renewed.body.csrf).not.toBe(prior.csrf);
+  });
   it('revokes a teacher role for already-existing sessions when the explicit allowlist changes', async () => {
     const store = memoryStore(),
       options = { store, local: true, origin: 'http://127.0.0.1:5175', domains: ['skule.test'] };

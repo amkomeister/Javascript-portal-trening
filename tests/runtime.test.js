@@ -1,6 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { createRuntime } from '../src/runtime/engine.js';
 describe('isolated student runtime', () => {
+  it('bubbles nested clicks through sanitized ancestors and document with target/currentTarget', async () => {
+    const r = await createRuntime({
+      dom: [
+        { id: 'button', tag: 'button', text: 'Trykk', parentId: null },
+        { id: 'label', tag: 'span', text: 'Trykk', parentId: 'button' },
+      ],
+    });
+    try {
+      r.run(
+        'document.getElementById("button").addEventListener("click", e => print(e.target.id + ":" + e.currentTarget.id)); document.addEventListener("click", () => print("document"));',
+      );
+      r.event({ type: 'click', id: 'label' });
+      expect(r.snapshot().logs).toEqual(['label:button', 'document']);
+    } finally {
+      r.dispose();
+    }
+  });
   it('enforces the heap limit independently of the loop deadline', async () => {
     const r = await createRuntime({ cpuMs: 5000, memoryBytes: 4 * 1024 * 1024 });
     try {

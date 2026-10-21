@@ -1,5 +1,7 @@
 # Kodeverkstad Skule
 
+Owner-requested pause on 2026-10-21. Resume project work only after the owner writes **iverksett**. Read `docs/RESUME.md` for the saved state and next step. Do not treat this pause as implementation completion or deployment approval.
+
 Nynorsk school learning platform, separate from the personal Javascript/Kodeverkstad repository. Never modify the personal app or its learning data.
 
 Keep stable school lesson IDs and versioned records. Student JavaScript runs only inside QuickJS in a Web Worker. Never evaluate student scripts in the host JavaScript engine. All access to student records is authorized by the server. Production must fail closed without Google/Firestore configuration; local test accounts are loopback-only.

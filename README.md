@@ -42,6 +42,8 @@ Automatiske sjekkar, eigensjekkar og lærarvurdering står kvar for seg. Sjekkan
 
 Autosave viser lagringsstatus, held kode open ved nettbrot og oppdagar revisjonskonfliktar. Konfliktkopiar blir lagra på serveren før eleven vel vidare versjon. «Kodekopi» verkar utan nett. ZIP-eksport inkluderer eit sjølvstendig køyringsmiljø: pakk ut og opne `index.html` i Chrome. Kopien sender ikkje data til appen.
 
+Når innlogginga går ut, vel **Logg inn på nytt** og bruk same skulekonto. Open kode blir bevart i alle faner. Du kan også laste ned ein kodekopi frå innloggingsvindauget. Vil du byte elevkonto, lagre arbeidet og bruk **Logg ut** først.
+
 ## Kontrollar
 
 ```sh

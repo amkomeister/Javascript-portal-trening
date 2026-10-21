@@ -27,7 +27,12 @@ export async function exportProject(data, name = 'mitt-prosjekt') {
       '<!doctype html><html lang="nn"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Mitt kodeprosjekt</title><style>body{font:18px system-ui;background:#f5f5ed;color:#172b37;max-width:900px;margin:32px auto;padding:20px}button{font:inherit;padding:12px 24px;margin:8px}canvas,iframe{display:block;border:2px solid #172b37;width:100%;max-width:720px;min-height:320px}canvas{height:auto}iframe{height:460px}[hidden]{display:none}:focus-visible{outline:4px solid #2453db;outline-offset:4px}pre{white-space:pre-wrap}</style><h1>Mitt kodeprosjekt</h1><button id="run">Køyr</button><button id="stop">Stopp</button><p id="status" role="status"></p><canvas width="480" height="320" tabindex="0" aria-label="Spelscene. Trykk her og bruk tastaturet."></canvas><iframe sandbox="allow-scripts" title="Nettsida mi"></iframe><pre id="output"></pre><script src="data.js"></script><script src="worker-source.js"></script><script src="host.js"></script></html>',
     'host.js': host,
     'worker-source.js': worker,
-    'data.js': 'window.KV_FILES=' + JSON.stringify(data.files) + ';',
+    'data.js':
+      'window.KV_FILES=' +
+      JSON.stringify(data.files) +
+      ';window.KV_MODE=' +
+      JSON.stringify(data.presentationMode === 'web' ? 'web' : 'draw') +
+      ';',
     'elevkode.js': data.files.js,
     'side.html': data.files.html,
     'stil.css': data.files.css,

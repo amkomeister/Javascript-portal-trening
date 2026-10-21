@@ -19,6 +19,7 @@ const defaults = (lesson) => ({
   hints: 0,
   selfChecked: false,
   autoPassed: false,
+  presentationMode: lesson.mode === 'web' ? 'web' : 'draw',
 });
 const labels = { js: 'JavaScript', html: 'HTML', css: 'CSS' };
 const basicSetup = [
@@ -42,7 +43,10 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
     api('/api/reviews'),
   ]);
   const record = { ...saved, data: saved.data || defaults(lesson) };
-  if (project?.data) record.data.files = structuredClone(project.data.files);
+  if (project?.data) {
+    record.data.files = structuredClone(project.data.files);
+    record.data.presentationMode = project.data.presentationMode || 'draw';
+  }
   let editor,
     activeFile = lesson.module === 'web' ? 'html' : 'js',
     disposed = false,
@@ -155,6 +159,8 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
     iframe = $('#preview', root);
   $('#run', root).setAttribute('aria-label', 'Køyr koden');
   $('#stop', root).setAttribute('aria-label', 'Stopp');
+  if ($('#result-kind', root))
+    $('#result-kind', root).value = record.data.presentationMode || 'draw';
   function resultKind() {
     return lesson.mode === 'mixed'
       ? $('#result-kind', root).value
@@ -209,6 +215,8 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
   }
   function update(change) {
     draft.update(change);
+    if (change.presentationMode && projectDraft)
+      projectDraft.update({ presentationMode: change.presentationMode });
     if (change.files && projectDraft)
       projectDraft.update({ files: change.files, autoPassed: false, selfChecked: false });
   }
@@ -330,7 +338,14 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
     stop();
     files = structuredClone(data.files);
     draft.update({ ...data, autoPassed: false, selfChecked: false });
-    if (projectDraft) projectDraft.update({ files, autoPassed: false, selfChecked: false });
+    if (projectDraft)
+      projectDraft.update({
+        files,
+        presentationMode: data.presentationMode || 'draw',
+        autoPassed: false,
+        selfChecked: false,
+      });
+    if ($('#result-kind', root)) $('#result-kind', root).value = data.presentationMode || 'draw';
     $('#reflection', root).value = draft.data.reflection;
     $('#self-check', root).checked = false;
     displaySupport();
@@ -363,7 +378,11 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
   });
   $('#run', root).onclick = run;
   $('#stop', root).onclick = stop;
-  if ($('#result-kind', root)) $('#result-kind', root).onchange = run;
+  if ($('#result-kind', root))
+    $('#result-kind', root).onchange = () => {
+      update({ presentationMode: resultKind() });
+      run();
+    };
   $('#support', root).onchange = (e) => {
     update({ support: e.target.value });
     displaySupport();
@@ -378,7 +397,10 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
   for (const id of ['copy', 'offline-copy'])
     $('#' + id, root).onclick = () => exportCopy({ ...draft.data, files }, lesson.id);
   $('#export', root).onclick = safeAction(() =>
-    exportProject({ ...draft.data, files }, lesson.projectKey || lesson.id),
+    exportProject(
+      { ...draft.data, files, presentationMode: resultKind() },
+      lesson.projectKey || lesson.id,
+    ),
   );
   $('#reset', root).onclick = safeAction(async () => {
     const answer = await choice(
@@ -429,6 +451,7 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
         ...draft.data,
         files: copy.data.files,
         reflection: String(copy.data.reflection || '').slice(0, 5000),
+        presentationMode: copy.data.presentationMode === 'web' ? 'web' : 'draw',
       });
     }
   });
@@ -455,6 +478,9 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
         return;
       }
       if (!['mine', 'other'].includes(answer)) return;
+      stop();
+      cancelCheck();
+      codeVersion++;
       d.resolve(other, answer === 'mine');
       files = structuredClone(d.data.files);
       if (d === projectDraft) draft.update({ files, autoPassed: false, selfChecked: false });
@@ -515,6 +541,8 @@ export async function openWorkspace(root, lesson, { api, user, onBack, onNext })
   if (project && !project.data) projectDraft.update({});
   return {
     flush,
+    preserve: () => Promise.all(drafts.map((d) => d.preserve())),
+    download: () => exportCopy({ ...draft.data, files, presentationMode: resultKind() }, lesson.id),
     dirty: () => drafts.some((d) => d.dirty),
     dispose() {
       disposed = true;

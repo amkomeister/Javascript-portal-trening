@@ -14,6 +14,7 @@ let user,
   csrf,
   config,
   workspace,
+  sessionExpired = false,
   epoch = 0,
   route = 0;
 const channel = new BroadcastChannel('kodeverkstad-skule-account-v1');
@@ -21,6 +22,8 @@ const accountLock = new AccountLock({
   channel,
   isActive: () => !!user,
   flush: () => workspace?.flush(),
+  preserve: () => workspace?.preserve(),
+  canRenew: (id) => user?.id === id,
   suspend: (value) => {
     app.inert = value;
   },
@@ -42,11 +45,13 @@ async function api(path, method = 'GET', body) {
   }
   const payload = await response.json();
   if (expected !== epoch) throw Error('stale');
-  if (!response.ok)
+  if (!response.ok) {
+    if (response.status === 401 && user) markExpired();
     throw Object.assign(new Error(payload.error || 'Noko gjekk gale.'), {
       status: response.status,
       payload,
     });
+  }
   return payload;
 }
 function shell() {
@@ -71,6 +76,7 @@ function shell() {
     .querySelectorAll('[data-nav]')
     .forEach((b) => (b.onclick = safeAction(() => navigate(b.dataset.nav))));
   if (user) $('#logout').onclick = safeAction(logout);
+  if (sessionExpired && user) markExpired();
   $('#about').onclick = () =>
     choice(
       'Ein verkstad for ideane dine',
@@ -253,39 +259,110 @@ function loginScreen() {
     $('#try-teacher').onclick = safeAction(() => localLogin('teacher'));
     $('#test-login').onclick = safeAction(() => localLogin($('#test-account').value));
   } else {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      if (!$('#google-signin')) return;
-      window.google.accounts.id.initialize({
-        client_id: config.clientId,
-        callback: safeAction(async (result) => {
-          const fresh = await api('/api/config');
-          const r = await accountLock.change(() =>
-            api('/api/auth/google', 'POST', {
-              credential: result.credential,
-              g_csrf_token: fresh.loginCsrf,
-            }),
-          );
-          await authenticated(r);
-        }),
-      });
-      window.google.accounts.id.renderButton($('#google-signin'), {
-        theme: 'outline',
-        size: 'large',
-        text: 'signin_with',
-        locale: 'nn',
-      });
-    };
-    script.onerror = () =>
-      message('Kunne ikkje hente Google-innlogginga. Kontroller nettet og prøv igjen.');
-    document.head.append(script);
+    googleButton(
+      $('#google-signin'),
+      safeAction(async (result) => {
+        const fresh = await api('/api/config');
+        const r = await accountLock.change(() =>
+          api('/api/auth/google', 'POST', {
+            credential: result.credential,
+            g_csrf_token: fresh.loginCsrf,
+          }),
+        );
+        await authenticated(r);
+      }),
+    );
   }
+}
+function googleButton(container, callback) {
+  const render = () => {
+    if (!container.isConnected) return;
+    window.google.accounts.id.initialize({ client_id: config.clientId, callback });
+    window.google.accounts.id.renderButton(container, {
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      locale: 'nn',
+    });
+  };
+  if (window.google?.accounts?.id) return render();
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.onload = render;
+  script.onerror = () =>
+    message('Kunne ikkje hente Google-innlogginga. Kontroller nettet og prøv igjen.');
+  document.head.append(script);
+}
+function markExpired() {
+  sessionExpired = true;
+  if (!user || $('#renew-session')) return;
+  const button = document.createElement('button');
+  button.id = 'renew-session';
+  button.className = 'primary';
+  button.textContent = 'Logg inn på nytt';
+  button.onclick = recoverSession;
+  $('.account')?.append(button);
+  message(
+    'Innlogginga er utgått. Koden er bevart. Vel Logg inn på nytt for å halde fram med same konto.',
+  );
+}
+function recoverSession() {
+  if ($('#renew-dialog')) return;
+  const expectedId = user.id;
+  const d = document.createElement('dialog');
+  d.id = 'renew-dialog';
+  d.className = 'dialog';
+  d.innerHTML =
+    '<h2>Hald fram med arbeidet ditt</h2><p>Koden blir verande open. Logg inn med same konto: <strong>' +
+    esc(user.email) +
+    '</strong>.</p><p role="alert" id="renew-error"></p><div id="renew-google"></div><div class="dialog-actions">' +
+    (config.local
+      ? '<button id="renew-local" class="primary">Hald fram som ' + esc(user.name) + '</button>'
+      : '') +
+    (workspace ? '<button id="renew-copy">Last ned kodekopi</button>' : '') +
+    '<button id="renew-cancel">Tilbake til koden</button></div>';
+  document.body.append(d);
+  d.showModal();
+  d.addEventListener('close', () => d.remove(), { once: true });
+  $('#renew-cancel', d).onclick = () => d.close();
+  if (workspace) $('#renew-copy', d).onclick = () => workspace.download();
+  const renew = async (credential) => {
+    try {
+      const fresh = config.local ? null : await api('/api/config');
+      const result = await accountLock.change(
+        () =>
+          api(config.local ? '/api/auth/local' : '/api/auth/google', 'POST', {
+            ...(config.local
+              ? { account: user.email.split('@')[0] }
+              : { credential, g_csrf_token: fresh.loginCsrf }),
+            resumeUserId: expectedId,
+          }),
+        { renewUserId: expectedId },
+      );
+      if (result.user.id !== expectedId) throw Error('Vel den same kontoen.');
+      user = result.user;
+      csrf = result.csrf;
+      epoch++;
+      sessionExpired = false;
+      $('#renew-session')?.remove();
+      d.close();
+      await accountLock.hold();
+      channel.postMessage({ type: 'session-renewed', userId: user.id });
+      message('Du er logga inn att. Arbeidet er framleis ope.');
+      await workspace?.flush();
+    } catch (error) {
+      if (d.isConnected) $('#renew-error', d).textContent = error.message;
+      else message(error.message);
+    }
+  };
+  if (config.local) $('#renew-local', d).onclick = () => renew();
+  else googleButton($('#renew-google', d), (result) => renew(result.credential));
 }
 async function authenticated(result) {
   user = result.user;
   csrf = result.csrf;
+  sessionExpired = false;
   epoch++;
   await accountLock.hold();
   channel.postMessage({ type: 'account', userId: user.id });
@@ -307,11 +384,26 @@ function clearIdentity() {
   workspace = null;
   user = null;
   csrf = null;
+  sessionExpired = false;
   document.querySelectorAll('dialog').forEach((d) => d.remove());
   shell();
   loginScreen();
 }
-channel.onmessage = (e) => {
+channel.onmessage = async (e) => {
+  if (e.data.type === 'session-renewed' && user?.id === e.data.userId) {
+    try {
+      accountLock.remoteId = null;
+      await accountLock.hold();
+      if (!(await refreshSession())) return;
+      $('#renew-dialog')?.close();
+      app.inert = false;
+      await workspace?.flush();
+    } catch (error) {
+      app.inert = false;
+      message(error.message);
+    }
+    return;
+  }
   if (e.data.type === 'logout' || (e.data.type === 'account' && user)) {
     clearIdentity();
     message('Kontoen blei endra i ei anna fane. Logg inn på nytt for å halde fram.');
@@ -323,20 +415,28 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = '';
   }
 });
-window.addEventListener('online', () => workspace?.flush().catch(() => {}));
-window.addEventListener('focus', async () => {
-  if (!user) return;
-  try {
-    const current = await api('/api/me');
-    if (current.user.id !== user?.id) {
-      clearIdentity();
-      message('Aktiv konto er endra. Logg inn på nytt.');
-    }
-  } catch (e) {
-    if (e.status === 401)
-      message('Innlogginga er utgått. Last ned ein kodekopi før du loggar inn på nytt.');
+async function refreshSession() {
+  if (!user) return false;
+  const current = await api('/api/me');
+  if (current.user.id !== user?.id) {
+    clearIdentity();
+    message('Aktiv konto er endra. Logg inn på nytt.');
+    return false;
   }
-});
+  csrf = current.csrf;
+  sessionExpired = false;
+  $('#renew-session')?.remove();
+  return true;
+}
+async function reconnect() {
+  try {
+    if (await refreshSession()) await workspace?.flush();
+  } catch (e) {
+    if (e.status === 401) markExpired();
+  }
+}
+window.addEventListener('online', reconnect);
+window.addEventListener('focus', reconnect);
 try {
   config = await api('/api/config');
   try {

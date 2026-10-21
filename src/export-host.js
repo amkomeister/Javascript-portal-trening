@@ -1,6 +1,8 @@
 import { sanitizeMarkup, previewDocument, drawFrame } from './runtime/preview.js';
 const files = window.KV_FILES;
 delete window.KV_FILES;
+const mode = window.KV_MODE;
+delete window.KV_MODE;
 const source = window.KV_WORKER;
 delete window.KV_WORKER;
 const canvas = document.querySelector('canvas'),
@@ -30,8 +32,8 @@ function run() {
   ready = false;
   latest = null;
   frame.srcdoc = previewDocument(clean.html, files.css, token);
-  frame.hidden = !files.html.trim();
-  canvas.hidden = !!files.html.trim();
+  frame.hidden = mode !== 'web';
+  canvas.hidden = mode === 'web';
   url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
   worker = new Worker(url);
   const fail = () => {

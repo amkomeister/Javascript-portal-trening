@@ -84,6 +84,9 @@ test('two machines show a revision conflict and preserve both versions', async (
   await saved(p);
   const conflicts = await (await other.request.get('/api/conflicts')).json();
   expect(conflicts.records.some((r) => r.data.files.js.includes('MASKIN B'))).toBe(true);
+  expect(conflicts.records.some((r) => r.serverVersion?.data.files.js.includes('MASKIN A'))).toBe(
+    true,
+  );
   await other.close();
 });
 test('logout clears the editor in every tab and another account sees only its work', async ({
@@ -236,7 +239,7 @@ test('teacher approval limits access and feedback reaches the right learner', as
   await t.getByRole('button', { name: 'Sjå arbeid' }).click();
   await t.locator('.records summary').first().click();
   await expect(t.locator('#student-work')).toContainText('Fargen er det siste argumentet.');
-  const review=t.locator('[data-review="skule-v1-start-01"]');
+  const review = t.locator('[data-review="skule-v1-start-01"]');
   await review.getByLabel('Lærarvurdering').fill('Fin forklaring. Prøv ein annan storleik òg.');
   await review.getByRole('button', { name: 'Lagre tilbakemelding' }).click();
   await openLesson(s, 'skule-v1-start-01');
