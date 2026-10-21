@@ -1,0 +1,11 @@
+.git
+.env*
+.local
+.superpowers
+node_modules
+dist
+public/export
+test-results
+playwright-report
+backups
+*.log
