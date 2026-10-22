@@ -1,6 +1,6 @@
 # Kodeverkstad Skule
 
-Owner-requested pause on 2026-10-21. Resume project work only after the owner writes **iverksett**. Read `docs/RESUME.md` for the saved state and next step. Do not treat this pause as implementation completion or deployment approval.
+The owner resumed work on 2026-10-22 with **Iverksett videre arbeid**. The 2026-10-21 pause is lifted. Read `docs/RESUME.md` for the current handover and next step. Resume authorization is not production deployment approval.
 
 Nynorsk school learning platform, separate from the personal Javascript/Kodeverkstad repository. Never modify the personal app or its learning data.
 

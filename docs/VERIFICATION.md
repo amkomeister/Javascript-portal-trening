@@ -1,4 +1,6 @@
-# Verifikasjon – 21. oktober 2026
+# Verifikasjon – oppdatert 22. oktober 2026
+
+Den attståande prøva av bygde filer og ein ny lokal produksjonsbygg/oppstart vart utførte 22. oktober. Resultata frå dei samla einings-, nettlesar- og emulatorprøvene nedanfor er frå 21. oktober på same appkode; berre statusdokumentasjon er endra sidan.
 
 ## Lokalt observert
 
@@ -7,7 +9,7 @@
 | `pnpm test`                              | PASS, 80 testar     | API, revisjonar og bevaring av begge konfliktversjonar, same-konto-fornying, ressursgrenser, sanitering, lagringskø, 50 oppdragsløysingar med alternativ og Snake-reglar |
 | `pnpm test:e2e`                          | PASS, 16 testar     | Chrome og Firestore-emulator: nybyrjarsti, DOM/tastatur, nettbrot, konfliktarkiv, kontogrenser, utgått økt og gjeninnlogging i fleire faner, ti samtidige elevar, Snake og offline eksport |
 | `pnpm build`                             | PASS                | Vite-produksjonsbygg og pakkar for eksport                                                                                                                                                                      |
-| `pnpm test:preview`                      | Tidlegare PASS, 2 testar; ikkje køyrt på nytt etter sluttgjennomgangen | Første oppdrag og interaktiv nettside gjennom bygde filer. Står som neste lokale kontroll etter pausen. |
+| `pnpm test:preview`                      | PASS, 2/2 den 22. oktober | Første oppdrag og interaktiv nettside gjennom dei ferdig bygde filene etter alle rettingane frå sluttgjennomgangen. |
 | `pnpm test:emulator`                     | PASS                | Eksport, gjenoppretting i tom emulator og vern mot overskriving                                                                                                                                                 |
 | Desktop og smal arbeidsflate             | PASS, inspisert     | Moduloversikt og arbeidsflate; skjermbilete under ignorerte `test-results`                                                                                                                                      |
 | axe, tastatur, 720 px og redusert rørsle | PASS i prøvde sider | Ingen automatiske axe-funn i oversikta og arbeidsflata; Tab går ut av editoren; ingen vassrett sideskrolling                                                                                                    |
@@ -21,7 +23,7 @@ Byggverktøyet varslar om store JavaScript-pakkar (CodeMirror og QuickJS). Dette
 
 Fem funn frå den uavhengige gjennomgangen er retta og regresjonsprøvde; sjå REVIEW.md. Siste samla nettlesarkøyring gav 16/16 PASS. Den første samla køyringa etter rettingane hadde éin feil i testoppsettet: to testtilfelle skreiv identisk kode til same syntetiske konto, slik at den siste ikkje laga ei ny endring. Unike testverdiar rettar opp dette utan å endre appen.
 
-**Pause etter eigaren si melding:** Ingen vidare utvikling eller kontrollkøyring før «iverksett». Sjå RESUME.md. Dei lokale app-/emulatorprosessane er stoppa.
+**Oppstart att 22. oktober:** Eigaren gav meldinga «Iverksett videre arbeid». Pausen er oppheva. Attståande lokal automatisk kontroll er fullført, og appen er starta med testkontoar for eigaren si utprøving. Sjå RESUME.md og UTPROVING.md.
 
 ## Ikkje utført her
 

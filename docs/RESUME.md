@@ -1,8 +1,14 @@
-# Pausa – vent på «iverksett»
+# Status etter oppstart att – 22. oktober 2026
 
-Eigaren bad 21. oktober 2026 om pause ved eit naturleg stoppunkt, oppdatering av GitHub og ingen vidare arbeid før meldinga **iverksett**. Denne meldinga er nødvendig for å ta opp att arbeidet. Ho er ikkje i seg sjølv godkjenning av produksjonspublisering.
+Eigaren skreiv **Iverksett videre arbeid** 22. oktober. Pausen er oppheva. Prosjektgreina var rein og samsvarte med GitHub ved oppstart. Den attståande `pnpm test:preview` er no køyrd på dei ferdig bygde filene: **2/2 PASS**. `pnpm preview` bygde og starta appen på nytt for lokal utprøving på http://127.0.0.1:5175. Berre dokumentasjonen er endra sidan den førre samla testkøyringa.
 
-## Lagret arbeid
+Neste steg er at eigaren prøver elevflyten og lærarrommet med lokale testkontoar etter UTPROVING.md. Appen er levert for lokal vurdering; faktisk læringsutbytte, skulemaskiner og produksjonsdrift er framleis opne kontrollar. Om førehandsvisinga ikkje lenger køyrer, bruk Start-skule.cmd. Ingen samanslåing til main eller Cloud-publisering er utført.
+
+## Historisk stoppunkt – 21. oktober
+
+Eigaren bad 21. oktober 2026 om pause ved eit naturleg stoppunkt, oppdatering av GitHub og ingen vidare arbeid før meldinga **iverksett**. Dette vart oppfylt. Meldinga er ikkje i seg sjølv godkjenning av produksjonspublisering.
+
+## Lagret arbeid ved pausen
 
 - Eige lokalt prosjekt: `C:\Users\47909\Documents\ChatGPT\Javascript-skule`.
 - Rett privat repo: https://github.com/amkomeister/Javascript-portal-trening.
@@ -15,11 +21,11 @@ Eigaren bad 21. oktober 2026 om pause ved eit naturleg stoppunkt, oppdatering av
 - Lokale app- og emulatorprosessar er stoppa. URL-en på port 5175 er derfor ikkje tilgjengeleg under pausen. `.local/data.json` held dei syntetiske lokale prøvedataa utanfor Git.
 - Hjelparagentane `final_review` og `inspect_learning_app` er ferdige. Ingen andre aktive prosjekttrådar vart funne ved kontrollen.
 
-## Første steg etter «iverksett»
+## Arbeidsrekkjefølgje etter «iverksett»
 
-1. Les AGENTS.md, denne fila, PROGRESS.md og VERIFICATION.md; kontroller git-status og HEAD på prosjektgreina utan å endre personleg Kodeverkstad.
-2. Køyr `pnpm test:preview` for siste kontroll av dei bygde filene. Rett eventuelle reelle feil med ei avgrensa regresjonsprøve.
-3. Start `pnpm preview` eller Start-skule.cmd dersom eigaren skal prøve appen; opne http://127.0.0.1:5175 i Chrome og bruk berre testkontoar.
-4. Gå gjennom lokal elev-/lærarprøve med eigaren. Behald skiljet mellom automatisk kontroll, faktisk brukartest og produksjonsaksept.
+1. **Utført 22. oktober:** lese prosjektstatus og kontrollert rein grein og lik lokal/remote HEAD. Personleg Kodeverkstad er uendra.
+2. **Utført 22. oktober:** `pnpm test:preview`, 2/2 PASS; ingen programrettingar var nødvendige.
+3. **Starta 22. oktober:** `pnpm preview` på http://127.0.0.1:5175, med lokale testkontoar og Firestore-emulator.
+4. **Neste:** lokal elev-/lærarprøve med eigaren. Behald skiljet mellom automatisk kontroll, faktisk brukartest og produksjonsaksept. Noter konkrete observasjonar før vidare endringar.
 
 Kommunale Google-kontoar/domene, skyprosjekt/billing, region, lagringstid/sletting, driftsansvar, Docker/Cloud Run, kostnads-/feilvarsel, gjenoppretting i skyen og faktiske skulemaskiner står framleis opne i DRIFT.md og UTPROVING.md. Ingen ekte elevbruk eller publisering før desse er handterte.
