@@ -40,6 +40,8 @@ Kvart oppdrag har mål, forklaring, fagord, døme, startkode, tre steg med hint,
 
 Automatiske sjekkar, eigensjekkar og lærarvurdering står kvar for seg. Sjekkane er avgrensa læringsstøtte og kan ikkje brukast som karakter eller prov på forståing. Lærarar ser berre godkjende medlemer i eigne grupper.
 
+Lærarar kjem rett til lærarrommet. Første gong opnar ei innføring med seks korte steg: opprett gruppe, del kode, godkjenn elevar, les arbeid, gi tilbakemelding og hjelp elevane vidare. **Opne lærarguiden** viser henne på nytt. Fullføring blir hugsa på lærarkontoen, også på ei anna maskin. Ulagrede tilbakemeldingar blir verna ved navigering og kontobyte; samtidige endringar gir eit synleg val og bevarer begge utgåvene.
+
 Autosave viser lagringsstatus, held kode open ved nettbrot og oppdagar revisjonskonfliktar. Konfliktkopiar blir lagra på serveren før eleven vel vidare versjon. «Kodekopi» verkar utan nett. ZIP-eksport inkluderer eit sjølvstendig køyringsmiljø: pakk ut og opne `index.html` i Chrome. Kopien sender ikkje data til appen.
 
 Når innlogginga går ut, vel **Logg inn på nytt** og bruk same skulekonto. Open kode blir bevart i alle faner. Du kan også laste ned ein kodekopi frå innloggingsvindauget. Vil du byte elevkonto, lagre arbeidet og bruk **Logg ut** først.
@@ -56,6 +58,8 @@ pnpm test:emulator
 ```
 
 Nettlesartestane startar eigen emulator på 8086 og app på 5176. Dei prøver blant anna samtidige elevar, kontoavgrensing, nettbrot, revisjonskonflikt, DOM-isolasjon, heile Snake og eksport. `test:emulator` prøver sikkerheitskopi/gjenoppretting og nektar overskriving av ein database med eksisterande data.
+
+Gjenopprettingsprøva bruker port 8087 og kan køyrast medan den lokale utprøvinga på 5175/8085 er open. For kommunal overlevering, sjå [KOMMUNAL-OVERLEVERING.md](docs/KOMMUNAL-OVERLEVERING.md), [DRIFT.md](docs/DRIFT.md) og [den nye kvalitetskontrollen](docs/QUALITY-2026-10-22.md).
 
 ## Teknisk oversikt
 

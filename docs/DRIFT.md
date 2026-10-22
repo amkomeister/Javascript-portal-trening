@@ -6,6 +6,8 @@ Fyll ut og godkjenn: prosjekt-ID, billing-konto, tillatne Google Workspace-domen
 
 Kontoopplysningar er namn, e-postadresse, SHA-256 av Google `sub`, rolle og valt trinn. Vidare blir kode, forklaringar, støtteval, kontrollstatus, medlemskap og lærartilbakemeldingar lagra. Ingen analyseverktøy, KI-teneste eller offentleg galleri er tilkopla. Øktnøklar blir berre lagra som hash på serveren. Serverloggar skriv ikkje elevkode eller ID-token.
 
+Fullføring av lærarguiden blir lagra som `teacherGuideVersion` på brukaren. Lærartilbakemeldingar har ein revisjon; eldre postar utan dette feltet blir lesne som versjon 0. Konfliktkopiar av tilbakemeldingar ligg i `conflicts` med `collection: reviews`, eigd av læraren og med referanse til elev og gruppe. Ved sletting av ein elev må også desse tilknytte kopiane handterast, sjølv om `userId` på konfliktposten er læraren.
+
 ## Cloud Run og Firestore
 
 Bygg Dockerfile i kommunen si byggjeløysing. Containeren krev miljøvariablane i `.env.example`; `.env` blir ikkje lesen automatisk. Produksjon nektar å starte utan full konfigurasjon, ved HTTP-origin eller med emulatorvariablar. `SCHOOL_LOCAL=1` kan aldri brukast med `NODE_ENV=production`.

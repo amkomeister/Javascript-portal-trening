@@ -123,16 +123,18 @@ export function createApp({
     if (req.body.resumeUserId && req.body.resumeUserId !== hash(claims.sub))
       throw fail(403, 'Vel den same skulekontoen som arbeidet er ope for. Koden din er bevart.');
     if (req.cookies.schoolSession) await store.delete('sessions', hash(req.cookies.schoolSession));
-    const userId = hash(claims.sub),
-      prior = await store.get('users', userId);
-    const user = {
-      id: userId,
-      name: String(claims.name || claims.email || 'Elev').slice(0, 120),
-      email: String(claims.email || '').slice(0, 254),
-      role: teacherSubs.includes(claims.sub) ? 'teacher' : 'student',
-      grade: prior?.grade ?? null,
-    };
-    await store.set('users', userId, user);
+    const userId = hash(claims.sub);
+    const user = await store.mutate('users', userId, (prior) => {
+      const value = {
+        id: userId,
+        name: String(claims.name || claims.email || 'Elev').slice(0, 120),
+        email: String(claims.email || '').slice(0, 254),
+        role: teacherSubs.includes(claims.sub) ? 'teacher' : 'student',
+        grade: prior?.grade ?? null,
+        teacherGuideVersion: prior?.teacherGuideVersion || 0,
+      };
+      return { value, result: value };
+    });
     const token = randomBytes(32).toString('hex'),
       csrf = randomBytes(24).toString('hex');
     const expires = Date.now() + 8 * 3600000;
@@ -230,8 +232,19 @@ export function createApp({
   });
   app.put('/api/profile', async (req, res) => {
     if (![8, 9, 10].includes(req.body.grade)) throw fail(400, 'Vel 8., 9. eller 10. trinn.');
-    const user = { ...req.user, grade: req.body.grade };
-    await store.set('users', user.id, user);
+    const user = await store.mutate('users', req.user.id, (prior) => {
+      const value = { ...prior, role: req.user.role, grade: req.body.grade };
+      return { value, result: value };
+    });
+    res.json({ user });
+  });
+  app.put('/api/teacher/guide', async (req, res) => {
+    teacher(req);
+    if (req.body.version !== 1) throw fail(400, 'Ugyldig versjon av lærarguiden.');
+    const user = await store.mutate('users', req.user.id, (prior) => {
+      const value = { ...prior, role: req.user.role, teacherGuideVersion: 1 };
+      return { value, result: value };
+    });
     res.json({ user });
   });
   for (const collection of ['progress', 'projects']) {
@@ -320,6 +333,7 @@ export function createApp({
     res.status(201).json(g);
   });
   app.post('/api/groups/join', async (req, res) => {
+    if (req.user.role !== 'student') throw fail(403, 'Gruppekoden er for elevkontoar.');
     if (
       typeof req.body.code !== 'string' ||
       !/^[A-F0-9]{12}$/.test(req.body.code.trim().toUpperCase())
@@ -327,10 +341,12 @@ export function createApp({
       throw fail(400, 'Kontroller gruppekoden.');
     const [g] = await store.list('groups', 'code', req.body.code.trim().toUpperCase());
     if (!g) throw fail(404, 'Fann ikkje gruppa.');
-    const key = g.id + '_' + req.user.id,
-      prior = await store.get('memberships', key);
-    const m = prior || { groupId: g.id, userId: req.user.id, approved: false };
-    await store.set('memberships', key, m);
+    const key = g.id + '_' + req.user.id;
+    const m = await store.mutate('memberships', key, (prior) => {
+      if (prior) return { result: prior };
+      const value = { groupId: g.id, userId: req.user.id, approved: false };
+      return { value, result: value };
+    });
     res.json(m);
   });
   app.get('/api/groups/:id/members', async (req, res) => {
@@ -366,6 +382,8 @@ export function createApp({
     await member(req, req.params.id, req.params.uid);
     if (!id(req.params.lesson) || typeof req.body.note !== 'string' || req.body.note.length > 2000)
       throw fail(400, 'Ugyldig vurdering.');
+    const revision = req.body.revision ?? 0;
+    if (!Number.isInteger(revision) || revision < 0) throw fail(400, 'Ugyldig lagringsversjon.');
     const r = {
       groupId: req.params.id,
       userId: req.params.uid,
@@ -374,8 +392,34 @@ export function createApp({
       teacherId: req.user.id,
       reviewedAt: new Date().toISOString(),
     };
-    await store.set('reviews', r.groupId + '_' + r.userId + '_' + r.lessonId, r);
-    res.json(r);
+    const key = r.groupId + '_' + r.userId + '_' + r.lessonId;
+    const result = await store.mutate('reviews', key, (prior) => {
+      if ((prior?.revision || 0) !== revision) {
+        const copy = {
+          id: randomBytes(12).toString('hex'),
+          userId: req.user.id,
+          collection: 'reviews',
+          recordId: key,
+          data: { note: r.note },
+          serverVersion: prior,
+          baseRevision: revision,
+          createdAt: new Date().toISOString(),
+        };
+        return {
+          writes: [{ collection: 'conflicts', id: copy.id, value: copy }],
+          result: { conflict: true, current: prior },
+        };
+      }
+      const value = { ...r, revision: revision + 1 };
+      return { value, result: value };
+    });
+    if (result.conflict)
+      return res.status(409).json({
+        error:
+          'Tilbakemeldinga er endra i ei anna fane eller på ei anna maskin. Begge utgåvene er tekne vare på.',
+        current: result.current,
+      });
+    res.json(result);
   });
   app.get('/api/reviews', async (req, res) =>
     res.json({ records: await store.list('reviews', 'userId', req.user.id) }),

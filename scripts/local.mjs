@@ -11,7 +11,7 @@ const verify = process.argv.includes('--verify'),
 if (process.env.NODE_ENV === 'production')
   throw Error('Lokal utvikling kan ikkje startast i produksjonsmodus.');
 const port = e2e ? 5176 : 5175,
-  emulatorPort = e2e ? 8086 : 8085,
+  emulatorPort = verify ? 8087 : e2e ? 8086 : 8085,
   projectId = e2e ? 'demo-school-e2e' : verify ? 'demo-school-verify' : 'demo-kodeverkstad';
 if (!verify) await buildExport();
 if (preview) {

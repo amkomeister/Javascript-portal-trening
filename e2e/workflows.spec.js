@@ -217,7 +217,11 @@ test('teacher approval limits access and feedback reaches the right learner', as
 }) => {
   const tc = await browser.newContext({ baseURL: origin }),
     sc = await browser.newContext({ baseURL: origin });
-  await login(tc, 'teacher');
+  const teacher = await login(tc, 'teacher');
+  await tc.request.put('/api/teacher/guide', {
+    headers: { Origin: origin, 'X-CSRF-Token': teacher.csrf },
+    data: { version: 1 },
+  });
   await login(sc, 'student8');
   const t = await tc.newPage(),
     s = await sc.newPage();
@@ -225,18 +229,19 @@ test('teacher approval limits access and feedback reaches the right learner', as
   await t.getByRole('button', { name: 'Lærarrommet', exact: true }).click();
   await t.getByLabel('Gruppenamn').fill('9A – prøve');
   await t.getByRole('button', { name: 'Opprett gruppe', exact: true }).click();
-  const code = await t.locator('.code').last().textContent();
+  const groupCard = t.locator('#teacher-groups > section').filter({ hasText: '9A – prøve' });
+  const code = await groupCard.locator('.code').textContent();
   await s.goto('/');
   await s.getByRole('button', { name: 'Mine grupper', exact: true }).click();
   await s.getByLabel('Gruppekode').fill(code);
   await s.getByRole('button', { name: 'Be om å bli med' }).click();
   await expect(s.locator('#group-list')).toContainText('Ventar på læraren');
   await t.getByRole('button', { name: 'Lærarrommet', exact: true }).click();
-  await t.getByRole('button', { name: 'Godkjenn', exact: true }).click();
+  await groupCard.getByRole('button', { name: 'Godkjenn', exact: true }).click();
   await openLesson(s, 'skule-v1-start-01');
   await s.getByLabel('Mi forklaring').fill('Fargen er det siste argumentet.');
   await saved(s);
-  await t.getByRole('button', { name: 'Sjå arbeid' }).click();
+  await groupCard.getByRole('button', { name: 'Sjå arbeid' }).click();
   await t.locator('.records summary').first().click();
   await expect(t.locator('#student-work')).toContainText('Fargen er det siste argumentet.');
   const review = t.locator('[data-review="skule-v1-start-01"]');

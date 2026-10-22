@@ -7,6 +7,7 @@ import { modules, lessons, lessonById } from './content/curriculum.js';
 import { art } from './art.js';
 import { esc, $, choice, message, safeAction } from './ui.js';
 import { teacherRoom, studentGroups } from './teacher.js';
+import { openTeacherGuide, teacherGuideVersion } from './teacher-guide.js';
 import { openWorkspace } from './workspace.js';
 import { AccountLock } from './account-lock.js';
 const app = $('#app');
@@ -15,6 +16,7 @@ let user,
   config,
   workspace,
   sessionExpired = false,
+  guideOffered = false,
   epoch = 0,
   route = 0;
 const channel = new BroadcastChannel('kodeverkstad-skule-account-v1');
@@ -58,8 +60,10 @@ function shell() {
   app.innerHTML =
     '<header class="topbar"><button class="brand" data-nav="home" aria-label="Kodeverkstad Skule, heim"><span class="brand-icon">&lt;/&gt;</span><span>Kodeverkstad <small>SKULE</small></span></button><nav aria-label="Hovudmeny">' +
     (user
-      ? '<button data-nav="home">Verkstaden</button><button data-nav="groups">Mine grupper</button>' +
-        (user.role === 'teacher' ? '<button data-nav="teacher">Lærarrommet</button>' : '')
+      ? '<button data-nav="home">Verkstaden</button>' +
+        (user.role === 'teacher'
+          ? '<button data-nav="teacher">Lærarrommet</button>'
+          : '<button data-nav="groups">Mine grupper</button>')
       : '') +
     '</nav><div class="account">' +
     (user
@@ -113,7 +117,25 @@ async function navigate(where = 'home', id) {
     return;
   }
   if (where === 'teacher' && user.role === 'teacher') {
-    await teacherRoom(root, api);
+    const showGuide = () =>
+      openTeacherGuide({
+        complete: async (version) => {
+          user = (await api('/api/teacher/guide', 'PUT', { version })).user;
+        },
+        onClose: (completed) => {
+          if (root.isConnected) $(completed ? '[name=name]' : '#teacher-guide-open', root)?.focus();
+        },
+      });
+    const opened = await teacherRoom(root, api, { showGuide });
+    if (current !== route) {
+      opened.dispose();
+      return;
+    }
+    workspace = opened;
+    if (!guideOffered && (user.teacherGuideVersion || 0) < teacherGuideVersion) {
+      guideOffered = true;
+      showGuide();
+    }
     return;
   }
   if (where === 'lesson') {
@@ -363,10 +385,11 @@ async function authenticated(result) {
   user = result.user;
   csrf = result.csrf;
   sessionExpired = false;
+  guideOffered = false;
   epoch++;
   await accountLock.hold();
   channel.postMessage({ type: 'account', userId: user.id });
-  await navigate();
+  await navigate(user.role === 'teacher' ? 'teacher' : 'home');
 }
 async function localLogin(account) {
   await authenticated(await accountLock.change(() => api('/api/auth/local', 'POST', { account })));
@@ -447,7 +470,7 @@ try {
   } catch (e) {
     if (e.status !== 401) throw e;
   }
-  await navigate();
+  await navigate(user?.role === 'teacher' ? 'teacher' : 'home');
 } catch (e) {
   shell();
   $('#main').innerHTML =
