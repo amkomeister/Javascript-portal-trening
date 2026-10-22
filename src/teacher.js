@@ -1,4 +1,4 @@
-import { esc, $, choice, safeAction } from './ui.js';
+import { esc, $, choice, safeAction, clearMessage } from './ui.js';
 import { lessons } from './content/curriculum.js';
 export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
   let live = true,
@@ -16,8 +16,11 @@ export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
   async function flush() {
     await preserve();
     if (dirty())
-      throw Error(
-        'Du har ulagrede tilbakemeldingar. Lagre dei, eller last ned ein kopi og vel Forkast ulagrede endringar.',
+      throw Object.assign(
+        new Error(
+          'Du har ulagrede tilbakemeldingar. Lagre dei, eller last ned ein kopi og vel Forkast ulagrede endringar.',
+        ),
+        { noticeSource: 'teacher-feedback-draft' },
       );
   }
   function download() {
@@ -99,14 +102,29 @@ export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
         (b) =>
           (b.onclick = safeAction(async () => {
             await flush();
-            await api('/api/groups/' + g.id + '/members/' + b.dataset.user, 'PUT', {
-              approved: b.dataset.approve === 'true',
-            });
-            if (!live) return;
-            readVersion++;
-            notes.clear();
-            $('#student-work', root).replaceChildren();
-            await list();
+            const fields = [...root.querySelectorAll('#student-work textarea')];
+            root.inert = true;
+            fields.forEach((field) => (field.readOnly = true));
+            $('#groups-status', root).textContent = 'Oppdaterer medlemskapet. Vent litt …';
+            try {
+              await api('/api/groups/' + g.id + '/members/' + b.dataset.user, 'PUT', {
+                approved: b.dataset.approve === 'true',
+              });
+              if (!live) return;
+              readVersion++;
+              notes.clear();
+              $('#student-work', root).replaceChildren();
+              await list();
+            } catch (error) {
+              if (live)
+                $('#groups-status', root).textContent =
+                  'Medlemskapet kunne ikkje oppdaterast. Prøv igjen.';
+              throw error;
+            } finally {
+              root.inert = false;
+              fields.forEach((field) => (field.readOnly = false));
+              if (live && root.isConnected) $('#refresh-groups', root).focus();
+            }
           })),
       );
       area
@@ -196,6 +214,7 @@ export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
       notes.set(form, state);
       const status = $('[role=status]', form),
         button = $('button', form);
+      const noticeSource = `teacher-review-${group.id}-${uid}-${form.dataset.review}`;
       const conflictBox = document.createElement('div');
       conflictBox.dataset.reviewConflict = '';
       conflictBox.hidden = true;
@@ -243,6 +262,7 @@ export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
               note === form.elements.note.value
                 ? ' Tilbakemelding lagra.'
                 : ' Nyare endringar er ikkje lagra.';
+            clearMessage(noticeSource);
           })
           .catch((error) => {
             if (error.status === 409) {
@@ -253,11 +273,13 @@ export async function teacherRoom(root, api, { showGuide = () => {} } = {}) {
               return;
             }
             status.textContent = ' Ikkje lagra. Teksten er bevart. Prøv igjen.';
+            error.noticeSource = noticeSource;
             throw error;
           })
           .finally(() => {
             state.pending = null;
             button.disabled = false;
+            if (!dirty()) clearMessage('teacher-feedback-draft');
           });
         await state.pending;
       });

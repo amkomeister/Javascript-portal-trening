@@ -1,5 +1,17 @@
 # Status etter oppstart att – 22. oktober 2026
 
+## Gjeldande overlevering etter lærarguide og kvalitetskontroll
+
+Den nye bestillinga om lærarinnføring og grundig kontroll er implementert. Lærarar får ei seks stegs innføring, kan opne henne att, oppdatere elevlistene og gi tilbakemeldingar med vern mot ulagret arbeid og samtidige endringar. Tilgang er prøvd for eigne/andre grupper, ventande/fjerna medlemskap og ulike roller. To funn frå éin ny granskar er retta i éin samla runde; sjå `REVIEW-2026-10-22.md`.
+
+Ny sluttkøyring: **91/91 einingstestar, 20/20 nettlesartestar, 6/6 prøver av bygde filer, bygg og emulator-backup/gjenoppretting PASS**. Produksjons-HTTP er prøvd med syntetisk konfigurasjon. Linux/container bestod for `f7daef6`; sjå status på aktuell commit i [utkast PR 1](https://github.com/amkomeister/Javascript-portal-trening/pull/1) for sluttversjonen. Ingen samanslåing eller publisering er utført.
+
+Appen er open i Chrome på http://127.0.0.1:5175 med lokale testkontoar. Han bruker emulatorport 8085; testane bruker 8086/8087 og forstyrrar ikkje denne prøva. Om prosessane er avslutta seinare, bruk `Start-skule.cmd`. `.local/data.json` bevarer syntetiske lokale data. Den personlege appen og læringsdata på 5173 er uendra.
+
+Eigaren svarte **«ikkje enno»** på spørsmålet om kommunale skyopplysningar. Neste eksterne steg er lokal lærar-/elevprøve etter `UTPROVING.md` og teknisk overlevering etter `KOMMUNAL-OVERLEVERING.md`. Kommunen må deretter konfigurere og godkjenne sitt miljø før elevbruk. Ikkje gjett prosjekt-ID, domene, region eller læraridentitetar. Ingen nye hjelpetrådar treng å haldast aktive.
+
+## Historisk oppstart før den nye bestillinga
+
 Eigaren skreiv **Iverksett videre arbeid** 22. oktober. Pausen er oppheva. Prosjektgreina var rein og samsvarte med GitHub ved oppstart. Den attståande `pnpm test:preview` er no køyrd på dei ferdig bygde filene: **2/2 PASS**. `pnpm preview` bygde og starta appen på nytt for lokal utprøving på http://127.0.0.1:5175. Berre dokumentasjonen er endra sidan den førre samla testkøyringa.
 
 Neste steg er at eigaren prøver elevflyten og lærarrommet med lokale testkontoar etter UTPROVING.md. Appen er levert for lokal vurdering; faktisk læringsutbytte, skulemaskiner og produksjonsdrift er framleis opne kontrollar. Om førehandsvisinga ikkje lenger køyrer, bruk Start-skule.cmd. Ingen samanslåing til main eller Cloud-publisering er utført.

@@ -107,7 +107,10 @@ test('logout clears the editor in every tab and another account sees only its wo
   await page.locator('summary').filter({ hasText: 'Fleire testkontoar' }).click();
   await page.locator('#test-account').selectOption('student10');
   await page.getByRole('button', { name: 'Opne testkonto' }).click();
-  await page.getByRole('button', { name: '10. trinn', exact: true }).click();
+  await expect(page.locator('header')).toContainText('Elev 10');
+  const signedIn = await (await context.request.get('/api/me')).json();
+  if (!signedIn.user.grade)
+    await page.getByRole('button', { name: '10. trinn', exact: true }).click();
   await page.getByRole('button', { name: 'Start med den første roboten' }).click();
   await expect(page.locator('.cm-content')).not.toContainText('PRIVATE-5');
 });

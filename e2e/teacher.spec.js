@@ -13,6 +13,7 @@ test('teacher guide opens at login, can be deferred, completed and reopened', as
   await expect(guide).toBeVisible();
   await expect(guide).toContainText('Steg 1 av 6');
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: 'test-results/teacher-guide-desktop.png', fullPage: true });
   await page.keyboard.press('Escape');
   await expect(guide).not.toBeVisible();
   await expect(page.getByRole('button', { name: 'Opne lærarguiden' })).toBeFocused();
@@ -127,6 +128,7 @@ test('teacher refreshes membership and keeps unsaved feedback through failures a
     await page.unroute('**/api/groups/*/reviews/**');
     await form.getByRole('button', { name: 'Lagre tilbakemelding' }).click();
     await expect(form.getByRole('status')).toContainText('Tilbakemelding lagra');
+    await expect(page.locator('#notice')).toBeHidden();
     expect(
       (await (await sc.request.get('/api/reviews')).json()).records.some(
         (r) => r.note === 'Forklar kva print gjer.',
@@ -162,5 +164,92 @@ test('teacher refreshes membership and keeps unsaved feedback through failures a
     await expect(page.getByRole('heading', { name: 'Kva vil du skape i dag?' })).toBeVisible();
   } finally {
     await sc.close();
+  }
+});
+
+test('membership updates protect the feedback editor while the response is pending', async ({
+  page,
+  context,
+  browser,
+}) => {
+  const t = await login(context, 'teacher');
+  const th = { Origin: origin, 'X-CSRF-Token': t.csrf };
+  await context.request.put('/api/teacher/guide', { headers: th, data: { version: 1 } });
+  const group = await (
+    await context.request.post('/api/groups', {
+      headers: th,
+      data: { name: 'Langsam medlemsendring' },
+    })
+  ).json();
+  const contexts = await Promise.all([9, 10].map(() => browser.newContext({ baseURL: origin })));
+  let release;
+  const held = new Promise((r) => (release = r));
+  try {
+    const members = [];
+    for (const [i, sc] of contexts.entries()) {
+      const s = await login(sc, 'student' + (i + 9));
+      members.push(s);
+      const headers = { Origin: origin, 'X-CSRF-Token': s.csrf };
+      await sc.request.post('/api/groups/join', { headers, data: { code: group.code } });
+      const existing = await (await sc.request.get('/api/progress/skule-v1-start-01')).json();
+      await sc.request.put('/api/progress/skule-v1-start-01', {
+        headers,
+        data: {
+          revision: existing.revision,
+          data: {
+            files: { js: 'print(1);', html: '', css: '' },
+            support: 'standard',
+            reflection: '',
+            selfChecked: false,
+            autoPassed: false,
+          },
+        },
+      });
+    }
+    await context.request.put(`/api/groups/${group.id}/members/${members[0].user.id}`, {
+      headers: th,
+      data: { approved: true },
+    });
+    await page.goto('/');
+    const card = page.locator('#teacher-groups > section').filter({ hasText: group.name });
+    await card.getByRole('button', { name: 'Sjå arbeid' }).click();
+    await page.locator('.records summary').first().click();
+    const note = page.getByLabel('Lærarvurdering');
+    await expect(note).toBeEditable();
+    await page.route(`**/api/groups/${group.id}/members/${members[1].user.id}`, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await card.getByRole('button', { name: 'Godkjenn', exact: true }).click();
+    await expect(note).not.toBeEditable();
+    await expect(page.locator('#groups-status')).toContainText('Oppdaterer medlemskapet');
+    release();
+    await expect(page.locator('#groups-status')).toHaveText('Elevlistene er oppdaterte.');
+    await expect(page.locator('#main')).not.toHaveAttribute('inert', '');
+    await expect(card.getByRole('button', { name: 'Sjå arbeid' })).toHaveCount(2);
+    await card.locator(`[data-read="${members[0].user.id}"]`).click();
+    await page.locator('.records summary').first().click();
+    let releaseRevocation;
+    const revocation = new Promise((r) => (releaseRevocation = r));
+    await page.route(`**/api/groups/${group.id}/members/${members[0].user.id}`, async (route) => {
+      await revocation;
+      await route.continue();
+    });
+    try {
+      await card.locator(`[data-user="${members[0].user.id}"]`).click();
+      await expect(page.getByLabel('Lærarvurdering')).not.toBeEditable();
+      releaseRevocation();
+      await expect(page.locator('#student-work')).toBeEmpty();
+      expect(
+        (
+          await context.request.get(`/api/groups/${group.id}/students/${members[0].user.id}`)
+        ).status(),
+      ).toBe(403);
+    } finally {
+      releaseRevocation();
+    }
+  } finally {
+    release();
+    await Promise.all(contexts.map((c) => c.close()));
   }
 });

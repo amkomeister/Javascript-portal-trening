@@ -4,12 +4,21 @@ export const esc = (value) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 export const $ = (selector, root = document) => root.querySelector(selector);
-export function message(text) {
+export function message(text, source = '') {
   const box = $('#notice');
   if (box) {
     box.hidden = false;
     box.textContent = text;
+    box.dataset.source = source;
     box.focus();
+  }
+}
+export function clearMessage(source) {
+  const box = $('#notice');
+  if (box?.dataset.source === source) {
+    box.hidden = true;
+    box.textContent = '';
+    delete box.dataset.source;
   }
 }
 export async function choice(title, body, options = [['ok', 'Greitt']]) {
@@ -43,6 +52,7 @@ export const safeAction = (fn) => async (e) => {
   try {
     await fn(e);
   } catch (error) {
-    if (error.message !== 'stale') message(error.message || 'Noko gjekk gale. Prøv igjen.');
+    if (error.message !== 'stale')
+      message(error.message || 'Noko gjekk gale. Prøv igjen.', error.noticeSource);
   }
 };

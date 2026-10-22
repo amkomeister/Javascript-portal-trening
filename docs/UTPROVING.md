@@ -2,6 +2,14 @@
 
 Bruk først lokale testkontoar saman med ein lærar. Ekte elevkontoar ventar til driftsprotokollen er godkjend. Ingen tidsfristar eller låsing av oppdrag er nødvendig.
 
+## Første prøve for læraren
+
+Vel **Prøv som lærar**. Lærarguiden opnar første gong; gå gjennom dei seks stega og vel **Fullfør innføringa**. **Seinare** og Escape lukkar guiden utan å registrere fullføring. Etter fullføring kan han alltid opnast att frå **Opne lærarguiden**.
+
+Opprett ei prøvegruppe. Opne ei eiga Chrome-profil/inkognitovindauge for elevkontoen (vanlege faner deler konto), vel trinn og bruk gruppekoden under **Mine grupper**. Tilbake som lærar: **Oppdater elevlistene**, kontroller namnet og vel **Godkjenn**. La eleven lagre kode og forklaring. Vel **Sjå arbeid**, opne oppdraget og skriv ei tilbakemelding. Ho skal først visast som lagra etter **Lagre tilbakemelding**. Eleven finn tilbakemeldinga ved å opne oppdraget på nytt.
+
+Prøv også å byte side før ei tilbakemelding er lagra: teksten skal stå att. Ved samtidig endring i ei anna økt skal begge utgåvene bevarast og læraren få velje. Be læraren forklare skilnaden mellom automatisk sjekk, eigensjekk og eiga vurdering. Noter kva læraren fann utan hjelp, og kva som var uklart.
+
 ## Felles innføring
 
 Vis roboten i første oppdrag. Les første linja høgt: rect betyr firkant; tala er plassering og storleik; teksten er fargen. Føresjå kva som skjer om blue blir lime. Gjer endringa og køyr. Vis kvar ein stoppar, får eitt hint og lastar ned ein kopi. Forklar skilnaden på automatisk kodesjekk, eigensjekk og lærarvurdering.

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { it, expect, vi } from 'vitest';
 import { teacherRoom } from '../src/teacher.js';
+import { message } from '../src/ui.js';
 const lesson = 'skule-v1-start-01';
 function work(name) {
   return {
@@ -96,3 +97,29 @@ it('does not call a note saved when the teacher types more during its save', asy
   await expect(page.controller.flush()).rejects.toThrow('ulagrede tilbakemeldingar');
   page.controller.dispose();
 });
+
+it.each([false, true])(
+  'removes only its own obsolete save warning; unrelated=%s',
+  async (unrelated) => {
+    let attempts = 0;
+    const page = await setup(
+      () => work('Elev A'),
+      async () => {
+        if (++attempts === 1) throw Error('Ingen kontakt med lagringa.');
+        return { revision: 1 };
+      },
+    );
+    await page.click('a');
+    const form = page.root.querySelector('[data-review]');
+    form.elements.note.value = 'Prøv eit mindre tal.';
+    await form.onsubmit({ preventDefault() {} });
+    const notice = document.querySelector('#notice');
+    expect(notice.textContent).toContain('Ingen kontakt');
+    if (unrelated) message('Ei anna viktig melding.');
+    await form.onsubmit({ preventDefault() {} });
+    expect(form.querySelector('[role=status]').textContent).toContain('Tilbakemelding lagra');
+    if (unrelated) expect(notice.textContent).toBe('Ei anna viktig melding.');
+    else expect(notice.hidden).toBe(true);
+    page.controller.dispose();
+  },
+);

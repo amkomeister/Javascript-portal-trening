@@ -95,7 +95,7 @@ async function leave() {
     workspace = null;
     return true;
   } catch (e) {
-    message(e.message);
+    message(e.message, e.noticeSource);
     return false;
   }
 }
