@@ -1,0 +1,12 @@
+node_modules/
+public/export/
+dist/
+.env
+.env.*
+!.env.example
+.local/
+.superpowers/
+test-results/
+playwright-report/
+*-debug.log
+backups/
