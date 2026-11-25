@@ -1,3 +1,15 @@
+# Gjeldande status – 25. november 2026
+
+## Avhengigheitsretting for gjennomgang
+
+Den nye eigarbestillinga frå GitHub-ansvarleg omfattar dei tre Dependabot-varsla, funksjonskontroll og PR på eiga arbeidsgrein. Grunnlaget er fletta `main` på `44dbadfa5713930a1ed0575d06c45b16039f6b1f`. Tidlegare omtale nedanfor av at skuleleveransen ikkje er fletta, er historisk.
+
+body-parser er oppdatert til 2.4.0. Firestore 9.4.1 / firestore-api 0.7.1 fjernar den gamle glob/minimatch-kjeda. Audit: 0 funn. Lokalt: 93 einingstestar, 20 nettlesartestar, 6 preview-prøver, bygg og emulator-backup/gjenoppretting PASS. Sjå [SECURITY-2026-11-25.md](SECURITY-2026-11-25.md) for FAIL → PASS-regresjon, miljøavgrensing og CI-endringar. Fersk hosted CI-status og endeleg SHA skal hentast frå sikkerheits-PR-en.
+
+Arbeidsgrein: `codex/skule-dependency-security-20261125`. Denne sikkerheitsrettinga skal ikkje flettast eller publiserast automatisk. Kommunal konfigurasjon og faktisk elevaksept står framleis att. Lokale utkast og eksisterande elevarbeid er ikkje endra.
+
+---
+
 # Status etter oppstart att – 22. oktober 2026
 
 ## Gjeldande overlevering etter lærarguide og kvalitetskontroll

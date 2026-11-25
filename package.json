@@ -27,7 +27,7 @@
     "@codemirror/language": "^6.13.1",
     "@fontsource/dm-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
-    "@google-cloud/firestore": "^9.3.1",
+    "@google-cloud/firestore": "^9.4.1",
     "@jitl/quickjs-singlefile-browser-release-sync": "^0.32.0",
     "@lezer/highlight": "^1.2.5",
     "codemirror": "^6.0.2",
