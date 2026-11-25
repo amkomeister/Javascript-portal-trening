@@ -49,6 +49,7 @@ Når innlogginga går ut, vel **Logg inn på nytt** og bruk same skulekonto. Ope
 ## Kontrollar
 
 ```sh
+pnpm audit --audit-level=low
 pnpm test
 pnpm build
 pnpm exec playwright install chromium
@@ -60,6 +61,8 @@ pnpm test:emulator
 Nettlesartestane startar eigen emulator på 8086 og app på 5176. Dei prøver blant anna samtidige elevar, kontoavgrensing, nettbrot, revisjonskonflikt, DOM-isolasjon, heile Snake og eksport. `test:emulator` prøver sikkerheitskopi/gjenoppretting og nektar overskriving av ein database med eksisterande data.
 
 Gjenopprettingsprøva bruker port 8087 og kan køyrast medan den lokale utprøvinga på 5175/8085 er open. For kommunal overlevering, sjå [KOMMUNAL-OVERLEVERING.md](docs/KOMMUNAL-OVERLEVERING.md), [DRIFT.md](docs/DRIFT.md) og [den nye kvalitetskontrollen](docs/QUALITY-2026-10-22.md).
+
+Avhengigheitskontrollen køyrer også i CI. Sjå [rettinga av novembervarsla](docs/SECURITY-2026-11-25.md) for versjonar og validering.
 
 ## Teknisk oversikt
 

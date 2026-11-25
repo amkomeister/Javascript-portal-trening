@@ -1,5 +1,7 @@
 name: Verify school delivery
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -8,6 +10,20 @@ concurrency:
   group: school-verify-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: npm install --global pnpm@11.25.0
+      # Audit the committed lockfile, including runtime and development dependencies.
+      # Registry errors and every reported severity fail this job; no ignored advisories.
+      - run: pnpm audit --audit-level=low
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
